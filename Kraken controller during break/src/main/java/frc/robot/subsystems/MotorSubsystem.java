@@ -32,7 +32,7 @@ public class MotorSubsystem extends SubsystemBase {
   private void configMotors() {
     motorConfigurator.MotorOutput.NeutralMode = NeutralModeValue.Coast;
     motorConfigurator.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-    motorConfigurator.Feedback.RotorToSensorRatio = 6.0;
+    motorConfigurator.Feedback.SensorToMechanismRatio = 6.0;
 
     motorConfigurator.CurrentLimits.SupplyCurrentLimit = 40.0;
     motorConfigurator.CurrentLimits.StatorCurrentLimit = 40.0;
@@ -43,7 +43,7 @@ public class MotorSubsystem extends SubsystemBase {
 
     Follower followerConfig = new Follower(m_Motor.getDeviceID(), true);
     m_Follower.setControl(followerConfig);
-}
+  }
 
   private void setMotorVoltage(double volts) {
     m_Motor.setControl(new VoltageOut(volts));
@@ -75,12 +75,6 @@ public class MotorSubsystem extends SubsystemBase {
 
   @Override
   public void periodic() {
-    SmartDashboard.putNumber("Motor1 Speed", motorSpeedRPS());
-  }
-}
-
-  @Override
-  public void periodic() {//this gets run every 20ms by the commandscheduler
     SmartDashboard.putNumber("Motor1 Speed", motorSpeedRPS());
   }
 }
