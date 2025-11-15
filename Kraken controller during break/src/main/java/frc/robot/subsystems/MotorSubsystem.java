@@ -5,47 +5,79 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.hardware.TalonFX;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VoltageOut;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class MotorSubsystem extends SubsystemBase {
-  /** Creates a new MotorSubsystem. */
-  private final TalonFX motor1;
+
+  private final TalonFX m_Motor;
+  private final TalonFX m_Follower;
   private final TalonFXConfiguration motorConfigurator = new TalonFXConfiguration();
-private final VoltageOut voltageOut = new VoltageOut(0);
+  private final double voltageInput = 0.5;
 
   public MotorSubsystem() {
-    motor1 = new TalonFX(0);
+    m_Motor = new TalonFX(0);
+    m_Follower = new TalonFX(1);
     configMotors();
   }
 
-  private void configMotors(){
-    motorConfigurator.Feedback.withRotorToSensorRatio(6);
-    motor1.getConfigurator().apply(motorConfigurator);
-  }
-  
-  private void voltageOutControl(double volts){
-    motor1.setControl(new VoltageOut(volts));
+  private void configMotors() {
+    motorConfigurator.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+    motorConfigurator.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+    motorConfigurator.Feedback.RotorToSensorRatio = 6.0;
+
+    motorConfigurator.CurrentLimits.SupplyCurrentLimit = 40.0;
+    motorConfigurator.CurrentLimits.StatorCurrentLimit = 40.0;
+    motorConfigurator.CurrentLimits.SupplyCurrentLimitEnable = true;
+
+    m_Motor.getConfigurator().apply(motorConfigurator);
+    m_Follower.getConfigurator().apply(motorConfigurator);
+
+    Follower followerConfig = new Follower(m_Motor.getDeviceID(), true);
+    m_Follower.setControl(followerConfig);
+}
+
+  private void setMotorVoltage(double volts) {
+    m_Motor.setControl(new VoltageOut(volts));
   }
 
-  private void stopMotor(){
-    motor1.stopMotor();
+  public void voltageUp() {
+    setMotorVoltage(voltageInput);
   }
 
-  private double motorSpeedRPS(){
-    return motor1.getVelocity().getValueAsDouble();
+  public void voltageDown() {
+    setMotorVoltage(-voltageInput);
   }
 
-  public Command spinMotorCommand(double volts){
-    return startEnd(
-      ()-> voltageOutControl(volts), 
-      ()-> stopMotor());
+  private void stopMotor() {
+    setMotorVoltage(0);
   }
+
+  private double motorSpeedRPS() {
+    return m_Motor.getVelocity().getValueAsDouble();
+  }
+
+  public Command spinMotorCommand(double volts) {
+    return Commands.startEnd(
+        () -> setMotorVoltage(volts),
+        this::stopMotor,
+        this
+    );
+  }
+
+  @Override
+  public void periodic() {
+    SmartDashboard.putNumber("Motor1 Speed", motorSpeedRPS());
+  }
+}
 
   @Override
   public void periodic() {//this gets run every 20ms by the commandscheduler
